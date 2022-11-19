@@ -37,7 +37,7 @@ def update_centers_l(net, args, known_class_dataloader):
                 num_samples[l] += 1
         for c in range(args.num_class):
             centers[c] /= num_samples[c]
-        net.module.ct_loss_l.centers = centers.to(device)
+        net.ct_loss_l.centers = centers.to(device)
 
 def update_centers_u(net, args, new_class_dataloader):
     from sklearn.cluster import KMeans
@@ -60,7 +60,7 @@ def update_centers_u(net, args, new_class_dataloader):
         true_label = torch.cat(true_label, dim = 0).cpu().numpy()
 
     label_pred = clf.fit_predict(rep)# from 0 to args.new_class - 1
-    net.module.ct_loss_u.centers = torch.from_numpy(clf.cluster_centers_).to(device) # (num_class, kmeans_dim)
+    net.ct_loss_u.centers = torch.from_numpy(clf.cluster_centers_).to(device) # (num_class, kmeans_dim)
     for i in range(len(idxes)):
         idx = idxes[i]
         pseudo = label_pred[i]
@@ -122,8 +122,8 @@ def train_one_epoch(net, args, epoch, known_class_dataloader, new_class_dataload
             rec_loss = (rec_loss1.mean() + rec_loss2.mean()) / 2
             pseudo = pseudo.to(device)
             label = label.to(device)
-            ct_loss = args.ct * net.module.ct_loss_l(label, sia_rep1)
-            loss = rec_loss + ct_loss + 1e-5 * (L2Reg(net.module.similarity_encoder) + L2Reg(net.module.similarity_decoder))
+            ct_loss = args.ct * net.ct_loss_l(label, sia_rep1)
+            loss = rec_loss + ct_loss + 1e-5 * (L2Reg(net.similarity_encoder) + L2Reg(net.similarity_decoder))
             loss.backward()
             #flush() 
 
@@ -136,7 +136,7 @@ def train_one_epoch(net, args, epoch, known_class_dataloader, new_class_dataload
                 label_pred = torch.max(known_logits, dim = -1)[1]
                 known_label = data[2].to(device)
                 acc = 1.0 * torch.sum(label_pred == known_label) / len(label_pred)
-                ce_loss = net.module.ce_loss(input = known_logits, target = known_label)
+                ce_loss = net.ce_loss(input = known_logits, target = known_label)
                 ce_loss.backward()
                 #flush()
             else:
@@ -158,9 +158,9 @@ def train_one_epoch(net, args, epoch, known_class_dataloader, new_class_dataload
                     data, icr_known_class_iter = endless_get_next_batch(loaders = known_class_dataloader, iters = icr_known_class_iter, batch_size = args.b_size)
                     l_logits = net.forward(data, msg = 'labeled', cut_gradient = False)
                     l_label = data[2].to(device)
-                    #icr_ce_loss = args.rampup_cof * sigmoid_rampup(epoch-args.num_pretrain, args.rampup_length) * net.module.ce_loss(input = logits, target = u_label)
-                    icr_ce_loss = args.rampup_cof * sigmoid_rampup(epoch-args.num_pretrain, args.rampup_length) * net.module.ce_loss(input=u_logits, target=u_label) \
-                                    + net.module.ce_loss(input=l_logits, target=l_label)
+                    #icr_ce_loss = args.rampup_cof * sigmoid_rampup(epoch-args.num_pretrain, args.rampup_length) * net.ce_loss(input = logits, target = u_label)
+                    icr_ce_loss = args.rampup_cof * sigmoid_rampup(epoch-args.num_pretrain, args.rampup_length) * net.ce_loss(input=u_logits, target=u_label) \
+                                    + net.ce_loss(input=l_logits, target=l_label)
                     icr_ce_loss.backward()
                     #flush()
                 else:
