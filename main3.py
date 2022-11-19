@@ -294,7 +294,10 @@ def main(args):
         if wait_times > args.wait_times:
             print("wait times arrive: {}, stop training, best result is: {}".format(args.wait_times, best_test_result))
             break
-
+    
+    if not os.path.exists('models/'):
+        os.mkdir('models/')
+    pretrained_model.save_pretrained('models/{}'.format(args.pm_save_name))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Bert probe task for relation extraction')
@@ -310,7 +313,7 @@ if __name__ == '__main__':
     parser.add_argument("--mode", type = int, default = 3)
 
     parser.add_argument("--p", type = float, default=1.0)
-    parser.add_argument("--layer", type = int, default = 8)
+    parser.add_argument("--layer", type = int, default = -1)
     parser.add_argument("--b_size", type = int, default = 100)
     parser.add_argument("--clip_grad", type = float, default = 0)
     parser.add_argument("--lr", type = float, default = 1e-4)
@@ -321,6 +324,9 @@ if __name__ == '__main__':
     parser.add_argument("--ct", type = float, default = 0.005)
     parser.add_argument("--num_pretrain", type = float, default = 10)
     parser.add_argument("--sigmoid", type = float, default = 2)
+    parser.add_argument("--pm_save_name", type = str, default = 'bert-pretrained')
+    parser.add_argument("--finetune", type = bool, default = 0)
+
     parser.add_argument("--hidden_dim", type = int, default = 512)
     parser.add_argument("--kmeans_dim", type = int, default = 256)
     parser.add_argument("--num_class", type = int, default = 64)

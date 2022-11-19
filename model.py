@@ -26,7 +26,10 @@ class ZeroShotModel3(nn.Module): # Pooling as relation description representatio
         self.kmeans_dim = args.kmeans_dim
         self.initial_dim = config.hidden_size
         self.unfreeze_layers = unfreeze_layers
-        self.pretrained_model = finetune(pretrained_model, self.unfreeze_layers) # fix bert weights
+        if args.finetune:
+            self.pretrained_model = finetune(pretrained_model, self.unfreeze_layers) # fix bert weights
+        else:
+            self.pretrained_model = pretrained_model
         self.layer = args.layer
         #self.similarity_classifier = Classifier(num_layers = 1, input_size = 4 * self.initial_dim, hidden_size = args.hidden_dim, output_size = 1)
         self.similarity_encoder = nn.Sequential(
