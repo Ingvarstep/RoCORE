@@ -259,10 +259,15 @@ def main(args):
     net = ZeroShotModel3(args, config, pretrained_model, unfreeze_layers = [args.layer])
     if args.cuda:
         net.cuda()
-        net = nn.DataParallel(net)
+        # net = nn.DataParallel(net)
     print("net ready...")
     print("-"*32)
-    optimizer = optim.Adam(net.parameters(), lr = args.lr)
+    no_decay = ['bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in net.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.1},
+        {'params': [p for n, p in net.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+    optimizer = optim.Adam(optimizer_grouped_parameters, lr = args.lr)
     best_result = 0
     best_test_result = 0
     wait_times = 0
@@ -297,7 +302,9 @@ def main(args):
     
     if not os.path.exists('models/'):
         os.mkdir('models/')
-    pretrained_model.save_pretrained('models/{}'.format(args.pm_save_name))
+    net.pretrained_model.save_pretrained('models/{}'.format(args.pm_save_name))
+    print(net.pretrained_model.embeddings.word_embeddings.weight[0])
+    tokenizer.save_pretrained('models/{}'.format(args.pm_save_name))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Bert probe task for relation extraction')
@@ -313,7 +320,7 @@ if __name__ == '__main__':
     parser.add_argument("--mode", type = int, default = 3)
 
     parser.add_argument("--p", type = float, default=1.0)
-    parser.add_argument("--layer", type = int, default = -1)
+    parser.add_argument("--layer", type = int, default = 1)
     parser.add_argument("--b_size", type = int, default = 100)
     parser.add_argument("--clip_grad", type = float, default = 0)
     parser.add_argument("--lr", type = float, default = 1e-4)
@@ -322,7 +329,7 @@ if __name__ == '__main__':
     parser.add_argument("--wait_times", type = int, default = 10)
 
     parser.add_argument("--ct", type = float, default = 0.005)
-    parser.add_argument("--num_pretrain", type = float, default = 10)
+    parser.add_argument("--num_pretrain", type = float, default = -1)
     parser.add_argument("--sigmoid", type = float, default = 2)
     parser.add_argument("--pm_save_name", type = str, default = 'bert-pretrained')
     parser.add_argument("--finetune", type = bool, default = 0)

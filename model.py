@@ -27,24 +27,26 @@ class ZeroShotModel3(nn.Module): # Pooling as relation description representatio
         self.initial_dim = config.hidden_size
         self.unfreeze_layers = unfreeze_layers
         if args.finetune:
+            print('finetuning is true')
             self.pretrained_model = finetune(pretrained_model, self.unfreeze_layers) # fix bert weights
         else:
             self.pretrained_model = pretrained_model
+            self.pretrained_model.requires_grad_=True
         self.layer = args.layer
         #self.similarity_classifier = Classifier(num_layers = 1, input_size = 4 * self.initial_dim, hidden_size = args.hidden_dim, output_size = 1)
         self.similarity_encoder = nn.Sequential(
                 nn.Linear(2 * self.initial_dim, self.hidden_dim),
                 nn.LeakyReLU(),
-                nn.Linear(self.hidden_dim, self.hidden_dim),
-                nn.LeakyReLU(),
+                # nn.Linear(self.hidden_dim, self.hidden_dim),
+                # nn.LeakyReLU(),
                 nn.Linear(self.hidden_dim, self.kmeans_dim)
                 #.LeakyReLU()
         )
         self.similarity_decoder = nn.Sequential(
                 nn.Linear(self.kmeans_dim, self.hidden_dim),
                 nn.LeakyReLU(),
-                nn.Linear(self.hidden_dim, self.hidden_dim),
-                nn.LeakyReLU(),
+                # nn.Linear(self.hidden_dim, self.hidden_dim),
+                # nn.LeakyReLU(),
                 nn.Linear(self.hidden_dim, 2 * self.initial_dim)
         )
         self.device = torch.device("cuda" if args.cuda else "cpu")
