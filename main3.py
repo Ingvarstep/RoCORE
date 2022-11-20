@@ -263,11 +263,15 @@ def main(args):
     print("net ready...")
     print("-"*32)
     no_decay = ['bias', 'LayerNorm.weight']
-    optimizer_grouped_parameters = [
-        {'params': [p for n, p in net.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.1},
-        {'params': [p for n, p in net.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ]
-    optimizer = optim.Adam(optimizer_grouped_parameters, lr = args.lr)
+    grouped_params = [
+        {'params': [p for n, p in net.pretrained_model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.1, 'lr': 5e-5},
+        {'params': [p for n, p in net.pretrained_model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0, 'lr': 5e-5},
+        {'params': net.similarity_encoder.parameters(), 'lr':1e-4},
+        {'params': net.similarity_decoder.parameters(), 'lr':1e-4},
+        {'params': net.labeled_head.parameters(), 'lr': 1e-3},
+        {'params': net.unlabeled_head.parameters(), 'lr': 1e-3},
+    ]
+    optimizer = optim.Adam(grouped_params, lr = args.lr)
     best_result = 0
     best_test_result = 0
     wait_times = 0
@@ -303,7 +307,6 @@ def main(args):
     if not os.path.exists('models/'):
         os.mkdir('models/')
     net.pretrained_model.save_pretrained('models/{}'.format(args.pm_save_name))
-    print(net.pretrained_model.embeddings.word_embeddings.weight[0])
     tokenizer.save_pretrained('models/{}'.format(args.pm_save_name))
 
 if __name__ == '__main__':
